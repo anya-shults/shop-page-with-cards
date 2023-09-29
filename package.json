@@ -1,0 +1,31 @@
+{
+  "name": "shop-page-with-cards",
+  "version": "1.0.0",
+  "description": "",
+  "source": "src/index.html",
+  "scripts": {
+    "start": "parcel --open",
+    "build": "parcel build src/*.html --public-url ./"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anya-shults/shop-page-with-cards.git"
+  },
+  "author": "anya-shults",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/anya-shults/shop-page-with-cards/issues"
+  },
+  "homepage": "https://github.com/anya-shults/shop-page-with-cards#readme",
+  "devDependencies": {
+    "@linthtml/linthtml": "^0.9.5",
+    "eslint": "^8.50.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.28.1",
+    "eslint-plugin-n": "^16.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "gh-pages": "^6.0.0",
+    "parcel": "^2.9.3",
+    "tailwindcss": "^3.3.3"
+  }
+}
