@@ -1,21 +1,76 @@
 /* eslint-disable max-len */
 import { request } from './api.js';
 
-let currentPage = 1;
+// let currentPage = 1;
 let page = 1;
 let fetchedCards = [];
 const productsPerPage = 24;
-const totalProducts = 461;
-const totalPages = Math.ceil(totalProducts / productsPerPage);
+// const totalProducts = 461;
+// const totalPages = Math.ceil(totalProducts / productsPerPage);
 const url = `/products.json?limit=${productsPerPage}`;
-const defaultImg = 'https://voodoo-dev-store.com/cdn/shop/products/AAUvwnj0ICORVuxs41ODOvnhvedArLiSV20df7r8XBjEUQ_s900-c-k-c0x00ffffff-no-rj_72c7d7cb-344c-4f62-ad0d-f75ec755894d.jpg?v=1670516960'
+const defaultImg = 'https://voodoo-dev-store.com/cdn/shop/products/AAUvwnj0ICORVuxs41ODOvnhvedArLiSV20df7r8XBjEUQ_s900-c-k-c0x00ffffff-no-rj_72c7d7cb-344c-4f62-ad0d-f75ec755894d.jpg?v=1670516960';
+
 const cardsContainer = document.getElementById('cards-container');
-const total = document.getElementById('total');
 const cartContainer = document.getElementById('cart-container');
-const cardFromLocalStorage = localStorage.getItem('cart');
-const cart = cardFromLocalStorage
-  ? JSON.parse(cardFromLocalStorage)
-  : [];
+const alphaButton = document.getElementById('alpha');
+let isAlphaButtonClick = false;
+
+const getTotalStorage = () => {
+  const totalFromLocalStorage = localStorage.getItem('total');
+  const totalStorage = totalFromLocalStorage
+    ? JSON.parse(totalFromLocalStorage)
+    : 0;
+
+  return totalStorage;
+};
+
+const getCartStorage = () => {
+  const cardFromLocalStorage = localStorage.getItem('cart');
+  const cartStorage = cardFromLocalStorage
+    ? JSON.parse(cardFromLocalStorage)
+    : [];
+
+  return cartStorage;
+};
+
+const getCartStorageItemCount = id => {
+  const cartStorage = getCartStorage();
+  const cartStorageCount = cartStorage.find(cartStorageItem => cartStorageItem.id === id).count;
+  const cartItemCount = document.getElementById(`count-${id}`);
+  
+  if (cartItemCount) {
+    cartItemCount.textContent = cartStorageCount;
+  }
+  
+  return cartStorageCount;
+};
+
+const updateCartStorage = cart => {
+  const cartStorage = getCartStorage();
+
+  cartStorage.push(cart);
+
+  localStorage.setItem('cart', JSON.stringify(cartStorage));
+};
+
+const deleteFromCartStorage = id => {
+  const cart = getCartStorage();
+  const filteredCart = cart.filter(cartItem => cartItem.id !== id);
+
+  localStorage.setItem('cart', JSON.stringify(filteredCart));
+};
+
+const updateTotalStorage = price => {
+  let totalStorage = getTotalStorage();
+  const total = totalStorage + price;
+  
+  localStorage.setItem('total', JSON.stringify(total));
+};
+
+const updateTotal = () => {
+  const total = document.getElementById('total');
+  total.textContent = getTotalStorage();
+};
 
 const createCartItem = (item) => {
   const cartItem = document.createElement('div');
@@ -53,42 +108,38 @@ const createCartItem = (item) => {
   const buttonWraper = document.createElement('div');
   buttonWraper.classList.add('flex', 'gap-1')
 
+  const cartItemCount = document.createElement('span');
+  cartItemCount.setAttribute('id', `count-${item.id}`);
+  cartItemCount.textContent = getCartStorageItemCount(item.id);
+
   const removeButton = document.createElement('button');
+  removeButton.disabled = !(getCartStorageItemCount(item.id) > 1);
+  removeButton.setAttribute('id', `remove-${item.id}`);
   removeButton.addEventListener('click', () => {
     updateCount(item.id, 'dec');
-  
-    const cartCount = cart.find(cartItem => cartItem.id = item.id).count;
-    cartItemCount.textContent = cartCount;
 
-    if (+total.textContent > +item.price) {
-      total.textContent = +total.textContent - +item.price;
-    } else {
-      total.textContent = 0;
-    }
+    const cartCount = getCartStorageItemCount(item.id);
+
+    removeButton.disabled = cartCount <= 1;
   });
   removeButton.textContent = '-';
 
-  const cartItemCount = document.createElement('span');
-  cartItemCount.textContent = item.count;
-
   const addButton = document.createElement('button');
+  addButton.setAttribute('id', `add-${item.id}`);
   addButton.addEventListener('click', () => {
     updateCount(item.id);
-  
-    const cartCount = cart.find(cartItem => cartItem.id = item.id).count;
-    cartItemCount.textContent = cartCount;
-    total.textContent = +total.textContent + +item.price;
+
+    const cartCount = getCartStorageItemCount(item.id);
+    
+    removeButton.disabled = !(cartCount > 1);
   });
   addButton.textContent = '+';
 
   const deleteButton = document.createElement('button');
   deleteButton.addEventListener('click', () => {
-    const filteredCart = cart.filter(cartItem => cartItem.id !== item.id);
+    const cart = getCartStorage();
+    const cartItemCount = cart.find(cartItem => cartItem.id === item.id).count;
   
-    localStorage.setItem('cart', JSON.stringify(filteredCart));
-    cartContainer.removeChild(cartItem);
-    total.textContent = 0;
-
     const button = document.getElementById(`button-${item.id}`);
     button.classList.remove(
       'bg-[#fcf7e6]',
@@ -107,10 +158,16 @@ const createCartItem = (item) => {
     );
     button.textContent = 'ADD TO CART';
     button.disabled = false;
+  
+    updateTotalStorage(-(+item.price * cartItemCount));
+    updateTotal();
+    deleteFromCartStorage(item.id);
+  
+    cartContainer.removeChild(cartItem);
   });
 
   const deleteIcon = document.createElement('img');
-  deleteIcon.setAttribute('src', './img/delete.svg');
+  deleteIcon.setAttribute('src', 'delete.svg');
   deleteIcon.setAttribute('alt', 'delete logo');
 
   buttonWraper.appendChild(removeButton);
@@ -128,22 +185,25 @@ const createCartItem = (item) => {
   cartItem.appendChild(deleteButton);
 
   cartContainer.appendChild(cartItem);
-
-  cart.forEach(currentCartItem => total.textContent = +total.textContent + +currentCartItem.price);
 };
 
 const updateCount = (id, action = 'inc') => {
+  const cart = getCartStorage()
   const cartItemIndex = cart.findIndex(cartItem => cartItem.id === id);
 
   if (action === 'inc') {
     cart[cartItemIndex].count += 1;
-  } else {
-    cart[cartItemIndex].count = cart[cartItemIndex].count > 0
-      ? cart[cartItemIndex].count -= 1
-      : cart[cartItemIndex].count = 0;
-  }
+
+    updateTotalStorage(+cart[cartItemIndex].price);
+  } else  {
+    cart[cartItemIndex].count -= 1;
+
+    updateTotalStorage(-cart[cartItemIndex].price);
+  } 
 
   localStorage.setItem('cart', JSON.stringify(cart));
+  
+  updateTotal();
 }
 
 const addToCart = (item) => {
@@ -154,20 +214,22 @@ const addToCart = (item) => {
     price: item.variants[0].price,
     count: 1,
   }
-
-  cart.push(cartItem);
   
-  localStorage.setItem('cart', JSON.stringify(cart));
+  updateCartStorage(cartItem);
+  updateTotalStorage(+cartItem.price)
+  updateTotal();
   createCartItem(cartItem);
 }
 
-const createCard = fetchedCard => {
-  const imgUrl = fetchedCard.images[0]?.src
-    ? fetchedCard.images[0].src
+const createProductCard = fetchedProductCard => {
+  const cart = getCartStorage();
+
+  const imgUrl = fetchedProductCard.images[0]?.src
+    ? fetchedProductCard.images[0].src
     : defaultImg;
 
   const card = document.createElement('article');
-  card.setAttribute('id', `card-${fetchedCard.id}`);
+  card.setAttribute('id', `card-${fetchedProductCard.id}`);
   card.classList.add(
     'flex',
     'flex-col',
@@ -223,10 +285,10 @@ const createCard = fetchedCard => {
 
   const title = document.createElement('span');
   title.classList.add('truncate');
-  title.textContent = `${fetchedCard.title}`;
+  title.textContent = `${fetchedProductCard.title}`;
   
   const price = document.createElement('span');
-  price.textContent = `${fetchedCard.variants[0].price}`;
+  price.textContent = `${fetchedProductCard.variants[0].price}`;
 
   const textRight = document.createElement('div');
   textRight.classList.add(
@@ -245,28 +307,58 @@ const createCard = fetchedCard => {
   used.textContent = 'Slightly used';
 
   const buttonAddToCart = document.createElement('button');
-  buttonAddToCart.setAttribute('id', `button-${fetchedCard.id}`);
+  buttonAddToCart.setAttribute('id', `button-${fetchedProductCard.id}`);
   buttonAddToCart.classList.add(
     'border',
     'border-black',
-    'transition',
-    'ease-in-out',
-    'delay-100',
-    'hover:border',
-    'hover:border-black',
-    'hover:text-black',
-    'hover:bg-[#fcf7e6]',
-    'font-bold',
-    'text-white',
-    'bg-black',
     'text-sm',
     'p-3',
     'rounded',
     'text-center',
-  );
-  buttonAddToCart.textContent = 'ADD TO CARD';
+  )
+
+  if (cart.findIndex(cartItem => cartItem.id === fetchedProductCard.id) > -1) {
+    buttonAddToCart.classList.add(
+      'bg-[#fcf7e6]',
+      'text-black',
+    );
+    buttonAddToCart.classList.remove(
+      'transition',
+      'ease-in-out',
+      'delay-100',
+      'hover:border',
+      'hover:border-black',
+      'hover:text-black',
+      'hover:bg-[#fcf7e6]',
+      'bg-black',
+      'text-white',
+    );
+
+    buttonAddToCart.textContent = 'ADDED';
+    buttonAddToCart.disabled = true;
+  } else {
+    buttonAddToCart.classList.add(
+      'transition',
+      'ease-in-out',
+      'delay-100',
+      'hover:border',
+      'hover:border-black',
+      'hover:text-black',
+      'hover:bg-[#fcf7e6]',
+      'bg-black',
+      'text-white',
+    );
+    buttonAddToCart.classList.remove(
+      'bg-[#fcf7e6]',
+      'text-black',
+    );
+  
+    buttonAddToCart.textContent = 'ADD TO CARD';
+    buttonAddToCart.disabled = false;
+  }
+
   buttonAddToCart.addEventListener('click', () => {
-    addToCart(fetchedCard);
+    addToCart(fetchedProductCard);
   
     buttonAddToCart.textContent = 'ADDED';
     buttonAddToCart.disabled = true;
@@ -305,16 +397,35 @@ const createCard = fetchedCard => {
   cardsContainer.appendChild(card);
 };
 
-if(cart) {
-  cart.forEach(createCartItem);
-}
-
-const fetchCards = async page => {
+const fetchProductCards = async page => {
   const data = await request(url + `&page=${page}`);
+
   return data.products;
 }
 
-fetchedCards = await fetchCards(page);
-fetchedCards.forEach(createCard);
+if(localStorage.getItem('cart')) {
+  const cart = getCartStorage()
+  cart.forEach(createCartItem);
+}
 
+if (localStorage.getItem('total')) {
+  const total = document.getElementById('total');
+  total.textContent = getTotalStorage();
+}
 
+fetchedCards = await fetchProductCards(page);
+fetchedCards.forEach(createProductCard);
+
+alphaButton.addEventListener('click', () => {
+  const hiddenInfo = document.getElementById('alert');
+
+  if (isAlphaButtonClick) {
+    isAlphaButtonClick = false;
+
+    hiddenInfo.classList.add('hidden');
+  } else {
+    isAlphaButtonClick = true;
+
+    hiddenInfo.classList.remove('hidden');
+  }
+})

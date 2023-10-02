@@ -83,24 +83,24 @@
           </div>
         </aside>
         <section class="flex flex-col gap-12">
-          <div id="alpha" class="p-6 bg-black text-white rounded flex gap-6">
-            <div class="flex gap-1.5">
-              <img src="./img/alert-circle.svg" alt="alert image" >
-              <span class="font-bold">ALPHA</span>
-            </div>
-            <div class="flex-auto">
-              <span class="text-sm">Important info</span>
-            </div>
-            <button id="down-up">
+          <div class="inline relative">
+            <button id="alpha" class="p-6 bg-black text-white rounded flex gap-6 w-full">
+              <div class="flex gap-1.5">
+                <img src="./img/alert-circle.svg" alt="alert image" >
+                <span class="font-bold">ALPHA</span>
+              </div>
+              <div class="flex-auto text-start">
+                <span class="text-sm text-left">Important info</span>
+              </div>
               <img
                 id="chevron-down"
                 src="./img/chevron-down.svg"
                 alt="chevron down"
               >
             </button>
-          </div>
-          <div id="alert" class="hidden bg-black text-white rounded text-sm">
-            hidden information
+            <div id="alert" class="hidden absolute bg-black text-white rounded text-sm p-6 z-10 w-full">
+              hidden information
+            </div>
           </div>
           <div
             id="cards-container"
