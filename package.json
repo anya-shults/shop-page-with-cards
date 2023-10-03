@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "source": "src/index.html",
+  "type": "module",
   "scripts": {
     "start": "parcel --open",
-    "build": "parcel build src/*.html --public-url ./"
+    "build": "parcel build src/*.html --public-url ./",
+    "deploy": "gh-pages -d dist"
   },
   "repository": {
     "type": "git",
@@ -27,5 +29,6 @@
     "gh-pages": "^6.0.0",
     "parcel": "^2.9.3",
     "tailwindcss": "^3.3.3"
-  }
+  },
+  "dependencies": {}
 }
