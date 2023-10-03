@@ -1,17 +1,18 @@
 /* eslint-disable max-len */
 import { request } from './api.js';
 
-// let currentPage = 1;
+let currentPage = 1;
 let page = 1;
 let fetchedCards = [];
 const productsPerPage = 24;
-// const totalProducts = 461;
-// const totalPages = Math.ceil(totalProducts / productsPerPage);
+const totalProducts = 461;
+const totalPages = Math.ceil(totalProducts / productsPerPage);
 const url = `/products.json?limit=${productsPerPage}`;
 const defaultImg = 'https://voodoo-dev-store.com/cdn/shop/products/AAUvwnj0ICORVuxs41ODOvnhvedArLiSV20df7r8XBjEUQ_s900-c-k-c0x00ffffff-no-rj_72c7d7cb-344c-4f62-ad0d-f75ec755894d.jpg?v=1670516960';
 
-const cardsContainer = document.getElementById('cards-container');
+const productCards = document.getElementById('product-cards');
 const cartContainer = document.getElementById('cart-container');
+
 const alphaButton = document.getElementById('alpha');
 let isAlphaButtonClick = false;
 
@@ -62,7 +63,7 @@ const deleteFromCartStorage = id => {
 
 const updateTotalStorage = price => {
   let totalStorage = getTotalStorage();
-  const total = totalStorage + price;
+  const total = Math.round((totalStorage + price) * 100) / 100;
   
   localStorage.setItem('total', JSON.stringify(total));
 };
@@ -72,7 +73,7 @@ const updateTotal = () => {
   total.textContent = getTotalStorage();
 };
 
-const createCartItem = (item) => {
+const createCartItem = item => {
   const cartItem = document.createElement('div');
   cartItem.setAttribute('id', `cart-item-${item.id}`)
   cartItem.classList.add(
@@ -136,28 +137,31 @@ const createCartItem = (item) => {
   addButton.textContent = '+';
 
   const deleteButton = document.createElement('button');
+  deleteButton.setAttribute('id', `delete-button-${item.id}`)
   deleteButton.addEventListener('click', () => {
     const cart = getCartStorage();
     const cartItemCount = cart.find(cartItem => cartItem.id === item.id).count;
-  
-    const button = document.getElementById(`button-${item.id}`);
-    button.classList.remove(
-      'bg-[#fcf7e6]',
-      'text-black',
-    );
-    button.classList.add(
-      'transition',
-      'ease-in-out',
-      'delay-100',
-      'hover:border',
-      'hover:border-black',
-      'hover:text-black',
-      'hover:bg-[#fcf7e6]',
-      'bg-black',
-      'text-white',
-    );
-    button.textContent = 'ADD TO CART';
-    button.disabled = false;
+    const button = document.getElementById(`add-button-${item.id}`);
+
+    if (button) {
+      button.classList.remove(
+        'bg-[#fcf7e6]',
+        'text-black',
+        );
+      button.classList.add(
+        'transition',
+        'ease-in-out',
+        'delay-100',
+        'hover:border',
+        'hover:border-black',
+        'hover:text-black',
+        'hover:bg-[#fcf7e6]',
+        'bg-black',
+        'text-white',
+      );
+      button.textContent = 'ADD TO CART';
+      button.disabled = false;
+    }
   
     updateTotalStorage(-(+item.price * cartItemCount));
     updateTotal();
@@ -206,7 +210,7 @@ const updateCount = (id, action = 'inc') => {
   updateTotal();
 }
 
-const addToCart = (item) => {
+const addToCart = item => {
   const cartItem = {
     id: item.id,
     title: item.title,
@@ -223,6 +227,7 @@ const addToCart = (item) => {
 
 const createProductCard = fetchedProductCard => {
   const cart = getCartStorage();
+  const cardsContainer = document.getElementById('cards-container');
 
   const imgUrl = fetchedProductCard.images[0]?.src
     ? fetchedProductCard.images[0].src
@@ -307,7 +312,7 @@ const createProductCard = fetchedProductCard => {
   used.textContent = 'Slightly used';
 
   const buttonAddToCart = document.createElement('button');
-  buttonAddToCart.setAttribute('id', `button-${fetchedProductCard.id}`);
+  buttonAddToCart.setAttribute('id', `add-button-${fetchedProductCard.id}`);
   buttonAddToCart.classList.add(
     'border',
     'border-black',
@@ -403,6 +408,163 @@ const fetchProductCards = async page => {
   return data.products;
 }
 
+const clearCardContainer = () => {
+  const cardsContainer = document.getElementById('cards-container');
+  productCards.removeChild(cardsContainer);
+
+  const newCardsContainer = document.createElement('div');
+
+  newCardsContainer.setAttribute('id', 'cards-container');
+  newCardsContainer.classList.add(
+    'flex',
+    'flex-col',
+    'gap-y-12',
+    'md:flex-row',
+    'md:flex-wrap',
+    'md:justify-center',
+    'md:gap-x-8',
+  )
+
+  productCards.appendChild(newCardsContainer);
+}
+
+const renderCards = async page => {
+  fetchedCards = await fetchProductCards(page);
+  fetchedCards.forEach(createProductCard);
+}
+
+const createPaginationList = (currentPage) => {
+  const maxPages = 3;
+
+  const pages = [{
+    page: 1,
+    current: currentPage === 1,
+  }];
+
+  let start = 0;
+
+  if (currentPage < maxPages + 1) {
+     start = 2;
+  } else if (currentPage >= maxPages + 1 && currentPage < totalPages - 1) {
+    console.log('qq')
+     start = currentPage - 1
+  } else {
+    start = totalPages - maxPages;
+  }
+  
+  let end = start + maxPages;
+
+  if (currentPage >= totalPages - 2) {
+    console.log('qq')
+    end = totalPages;
+  }
+
+console.log(start);
+
+  if (currentPage >= maxPages + 1) {
+    pages.push({ page: '...'} )
+  }
+
+  for (let i = start; i < end; i++) {
+    pages.push({ page: i, current: currentPage === i });
+  }
+
+  if (currentPage <= totalPages - 3) {
+    pages.push({ page: '...' })
+  }
+
+  pages.push({
+    page: 20,
+    current: currentPage === totalPages,
+  }); 
+
+  return pages;
+}
+
+const paginate = (currentPage) => {
+  const pages = createPaginationList(currentPage);
+  const pagination = document.getElementById('pagination');
+  const paginationContainer = document.createElement('div');
+  paginationContainer.classList.add(
+    'mx-auto',
+    'flex',
+    'justify-center',
+    'gap-2.5',
+    'xl:mt-16',
+  );
+
+  pages.map((item) => {
+    const paginationLinkElement = document.createElement('button');
+    const paginationActiveElement = document.createElement('span');
+    const paginationEmptyElement = document.createElement('span');
+
+    paginationLinkElement.addEventListener('click', async () => {
+      pages.find(page => page.current).current = false;
+      
+      item.current = true;
+
+      window.scrollTo(0, 0);
+
+      clearCardContainer();
+      renderCards(item.page);
+
+      pagination.removeChild(paginationContainer);
+      paginate(item.page);
+    })
+
+    paginationEmptyElement.textContent = '...';
+    paginationEmptyElement.classList.add(
+      'h-10',
+      'w-10',
+      'leading-10',
+      'border',
+      'border-black',
+      'rounded-full',
+      'text-center',
+      'text-lg',
+    );
+
+    paginationLinkElement.classList.add(
+      'h-10',
+      'w-10',
+      'leading-10',
+      'border',
+      'border-black',
+      'rounded-full',
+      'text-center',
+      'text-lg',
+    );
+
+    paginationActiveElement.classList.add(
+      'current',
+      'h-10',
+      'w-10',
+      'leading-10',
+      'border',
+      'border-black',
+      'rounded-full',
+      'text-center',
+      'text-lg',
+      'bg-black',
+      'text-white',
+    );
+
+    if (item.current) {
+      paginationActiveElement.setAttribute('id', `pagination-${item.page}`);
+      paginationActiveElement.textContent = item.page;
+      paginationContainer.appendChild(paginationActiveElement);
+    } else if (item.page === '...') {
+      paginationContainer.appendChild(paginationEmptyElement);
+    } else {
+      paginationLinkElement.setAttribute('id', `pagination-${item.page}`);
+      paginationLinkElement.textContent = item.page;
+      paginationContainer.appendChild(paginationLinkElement);
+    }
+  });
+  
+  pagination.appendChild(paginationContainer);
+}
+
 if(localStorage.getItem('cart')) {
   const cart = getCartStorage()
   cart.forEach(createCartItem);
@@ -412,9 +574,6 @@ if (localStorage.getItem('total')) {
   const total = document.getElementById('total');
   total.textContent = getTotalStorage();
 }
-
-fetchedCards = await fetchProductCards(page);
-fetchedCards.forEach(createProductCard);
 
 alphaButton.addEventListener('click', () => {
   const hiddenInfo = document.getElementById('alert');
@@ -428,4 +587,7 @@ alphaButton.addEventListener('click', () => {
 
     hiddenInfo.classList.remove('hidden');
   }
-})
+});
+
+renderCards(page);
+paginate(currentPage);
