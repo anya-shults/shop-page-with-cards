@@ -455,7 +455,7 @@ const createPaginationList = (currentPage) => {
   let end = start + maxPages;
 
   if (currentPage >= totalPages - 2) {
-    console.log('qq')
+  
     end = totalPages;
   }
 
